@@ -37,7 +37,7 @@ pico_sdk_init()
 
 add_executable(tarefa_adc 
         tarefa_adc.c 
-        inc/ssd1306.c
+        ssd1306.c
         )
 
 pico_set_program_name(tarefa_adc "tarefa_adc")
