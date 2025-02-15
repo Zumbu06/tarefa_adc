@@ -4,8 +4,8 @@
 #include "hardware/pwm.h"
 #include "hardware/adc.h"
 #include "hardware/i2c.h"
-#include "ssd1306.h"
-#include "font.h"
+#include "ssd1306.h" 
+#include "font.h" 
 
 #define BOTAO_A 5
 #define BOTAO_JOY 22
@@ -26,6 +26,7 @@ static volatile bool flag = true;
 static int16_t v_y = 2048;
 static int16_t v_x = 2048;
 static ssd1306_t ssd;
+static uint8_t borda_estilo = 0; // Variável para alternar entre estilos de borda
 
 void callback(uint gpio, uint32_t events)
 {
@@ -41,7 +42,8 @@ void callback(uint gpio, uint32_t events)
         } 
         else if (gpio == BOTAO_JOY)
         {
-            gpio_put(LED_G, !gpio_get(LED_G));
+            gpio_put(LED_G, !gpio_get(LED_G)); // Alterna o LED verde
+            borda_estilo = (borda_estilo + 1) % 3; // Alterna entre 3 estilos de borda
         }
         tempo_antes = tempo_agora;
     }
@@ -99,33 +101,67 @@ void i2c_configuracao()
     ssd1306_send_data(&ssd);
 }
 
-void quadrado(int16_t x_quad, int16_t y_quad)
-{   
+void desenha_borda()
+{
+    // Desenha a borda com base no estilo selecionado
     ssd1306_fill(&ssd, false);
 
-    // dando limites a leitura no joystick para corresponder as bordas do display
-    if(x_quad < 176)
-    {
+    if (borda_estilo == 0) { // Borda simples
+        ssd1306_rect(&ssd, 0, 0, WIDTH, HEIGHT, true, false); // Borda sólida
+    }
+    else if (borda_estilo == 1) { // Borda dupla
+        // Ajuste do espaçamento entre a primeira e a terceira borda
+        ssd1306_rect(&ssd, 2, 2, WIDTH - 4, HEIGHT - 4, true, false); // Borda interna
+        ssd1306_rect(&ssd, 0, 0, WIDTH, HEIGHT, true, false); // Borda externa
+    }
+    else if (borda_estilo == 2) { // Borda com espaços
+        for (int i = 0; i < 3; i++) {
+            ssd1306_rect(&ssd, i * 2, i * 2, WIDTH - (i * 2 * 2), HEIGHT - (i * 2 * 2), true, false);
+        }
+    }
+
+    ssd1306_send_data(&ssd);
+}
+
+void quadrado(int16_t x_quad, int16_t y_quad)
+{   
+    // Atualiza a posição do quadrado
+    ssd1306_fill(&ssd, false);
+
+    // Restrições para o quadrado não sair da área da tela
+    if (x_quad < 176) {
         x_quad = 176;
     }
-    if(x_quad > 3920)
-    {
+    if (x_quad > 3920) {
         x_quad = 3920;
     }
-    if(y_quad < 1218)
-    {
+    if (y_quad < 1218) {
         y_quad = 1218;
     }
-    if(y_quad > 2878)
-    {
+    if (y_quad > 2878) {
         y_quad = 2878;
     }
+
+    // Ajusta a posição do quadrado para as coordenadas da tela
     x_quad = x_quad - 176;
     x_quad = (int)(x_quad / 32.5) + 3;
     y_quad = y_quad - 1218;
     y_quad = (int)(y_quad / 33.0);
     y_quad = abs(y_quad - 50) + 3;
 
+    // Calcula a posição da borda, limitando o quadrado à borda atual
+    int limite_x = (borda_estilo == 0) ? WIDTH : (borda_estilo == 1) ? WIDTH - 4 : WIDTH - 6;
+    int limite_y = (borda_estilo == 0) ? HEIGHT : (borda_estilo == 1) ? HEIGHT - 4 : HEIGHT - 6;
+
+    // Impede o quadrado de ultrapassar as bordas
+    if (x_quad + 8 > limite_x) {
+        x_quad = limite_x - 8;
+    }
+    if (y_quad + 8 > limite_y) {
+        y_quad = limite_y - 8;
+    }
+
+    // Desenha o quadrado
     ssd1306_rect(&ssd, y_quad, x_quad, 8, 8, true, true);
     ssd1306_send_data(&ssd);
 }
@@ -142,7 +178,7 @@ int main()
 
     int16_t y_led;
     int16_t x_led;
-
+    
     while(true)
     {   
         adc_select_input(0);
@@ -158,7 +194,8 @@ int main()
             pwm_set_gpio_level(LED_R, x_led);
         }
 
+        desenha_borda(); // Desenha a borda no display
         quadrado(v_x, v_y); // Atualiza a posição do quadrado no display
-        sleep_ms(50);
+        sleep_ms(10);
     }
 }
