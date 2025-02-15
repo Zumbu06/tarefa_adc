@@ -34,12 +34,12 @@ project(tarefa_adc C CXX ASM)
 pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
-
 add_executable(tarefa_adc 
         tarefa_adc.c 
-        ssd1306.c
+        ssd1306.c  # Certifique-se de que este arquivo está correto
         )
 
+# Define program name and version
 pico_set_program_name(tarefa_adc "tarefa_adc")
 pico_set_program_version(tarefa_adc "0.1")
 
@@ -49,18 +49,18 @@ pico_enable_stdio_usb(tarefa_adc 1)
 
 # Add the standard library to the build
 target_link_libraries(tarefa_adc
-        pico_stdlib)
-
-# Add the standard include files to the build
-target_include_directories(tarefa_adc PRIVATE
-        ${CMAKE_CURRENT_LIST_DIR}
-)
-
-# Add any user requested libraries
-target_link_libraries(tarefa_adc 
-        hardware_i2c
+        pico_stdlib
+        hardware_i2c    # Para suporte a I2C, necessário para o display SSD1306
         hardware_pwm
         hardware_adc
         )
 
+# Add the standard include files to the build
+target_include_directories(tarefa_adc PRIVATE
+        ${CMAKE_CURRENT_LIST_DIR}
+        # Se o cabeçalho ssd1306.h estiver em uma pasta diferente, adicione aqui
+        ${CMAKE_CURRENT_LIST_DIR}/path_to_your_ssd1306_folder
+)
+
+# Add any user requested libraries
 pico_add_extra_outputs(tarefa_adc)
